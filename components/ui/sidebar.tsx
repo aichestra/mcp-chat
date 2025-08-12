@@ -27,7 +27,8 @@ import {
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "16rem"
+// Default width; can be overridden via localStorage at runtime
+const DEFAULT_SIDEBAR_WIDTH = 16 * 16; // 16rem → px baseline for calculations
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
@@ -40,6 +41,8 @@ type SidebarContextProps = {
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
   toggleSidebar: () => void
+  sidebarWidthPx: number
+  setSidebarWidthPx: (px: number) => void
 }
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null)
@@ -113,27 +116,68 @@ function SidebarProvider({
   // This makes it easier to style the sidebar with Tailwind classes.
   const state = open ? "expanded" : "collapsed"
 
-  const contextValue = React.useMemo<SidebarContextProps>(
-    () => ({
-      state,
-      open,
-      setOpen,
-      isMobile,
-      openMobile,
-      setOpenMobile,
-      toggleSidebar,
-    }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
-  )
+  // Persisted width support
+  const [sidebarWidthPx, setSidebarWidthPx] = React.useState<number>(DEFAULT_SIDEBAR_WIDTH);
+
+  // Load stored width after component mounts to avoid hydration mismatch
+  React.useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem('sidebar-width');
+      const parsed = stored ? parseInt(stored, 10) : NaN;
+      if (Number.isFinite(parsed)) {
+        setSidebarWidthPx(parsed);
+      }
+    } catch {}
+  }, []);
+
+  React.useEffect(() => {
+    try {
+      window.localStorage.setItem('sidebar-width', String(sidebarWidthPx));
+    } catch {}
+  }, [sidebarWidthPx]);
+
+  const sidebarWidthStyle = `${Math.max(224, Math.min(640, sidebarWidthPx))}px`; // clamp 14rem–40rem
+
+  // Drag resizing state
+  const dragState = React.useRef<{ startX: number; startWidth: number } | null>(null);
+
+  const onDragStart = React.useCallback((e: React.MouseEvent) => {
+    dragState.current = { startX: e.clientX, startWidth: sidebarWidthPx };
+    const onMove = (ev: MouseEvent) => {
+      if (!dragState.current) return;
+      const delta = ev.clientX - dragState.current.startX;
+      setSidebarWidthPx(dragState.current.startWidth + delta);
+    };
+    const onUp = () => {
+      dragState.current = null;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [sidebarWidthPx]);
 
   return (
-    <SidebarContext.Provider value={contextValue}>
+    <SidebarContext.Provider value={React.useMemo(
+      () => ({
+        state,
+        open,
+        setOpen,
+        isMobile,
+        openMobile,
+        setOpenMobile,
+        toggleSidebar,
+        sidebarWidthPx,
+        setSidebarWidthPx,
+      }),
+      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, sidebarWidthPx]
+    )}>
       <TooltipProvider delayDuration={0}>
         <div
           data-slot="sidebar-wrapper"
           style={
             {
-              "--sidebar-width": SIDEBAR_WIDTH,
+              "--sidebar-width": sidebarWidthStyle,
               "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
               ...style,
             } as React.CSSProperties
@@ -163,7 +207,7 @@ function Sidebar({
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none"
 }) {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+  const { isMobile, state, openMobile, setOpenMobile, setSidebarWidthPx, sidebarWidthPx } = useSidebar()
 
   if (collapsible === "none") {
     return (
@@ -226,6 +270,39 @@ function Sidebar({
             : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)"
         )}
       />
+      
+      {/* Drag handle as a separate element */}
+      <div
+        onMouseDown={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          const startX = e.clientX
+          const startWidth = sidebarWidthPx
+          const onMove = (ev: MouseEvent) => {
+            ev.preventDefault()
+            const newWidth = startWidth + (ev.clientX - startX)
+            // Clamp width between 14rem (224px) and 40rem (640px)
+            const clampedWidth = Math.max(224, Math.min(640, newWidth))
+            setSidebarWidthPx(clampedWidth)
+          }
+          const onUp = () => {
+            window.removeEventListener('mousemove', onMove)
+            window.removeEventListener('mouseup', onUp)
+          }
+          window.addEventListener('mousemove', onMove)
+          window.addEventListener('mouseup', onUp)
+        }}
+        className="absolute inset-y-0 z-40 cursor-col-resize select-none"
+        style={{ 
+          left: `${sidebarWidthPx}px`,
+          width: 2,
+          marginLeft: -1,
+          backgroundColor: 'rgba(255, 255, 255, 0.1)'
+        }}
+        title="Drag to resize sidebar"
+      />
+      
+      {/* Remove the old drag handle */}
       <div
         data-slot="sidebar-container"
         className={cn(

@@ -276,9 +276,7 @@ export function ChatSidebar() {
                                   )}
                                   title={chat.title}
                                 >
-                                  {chat.title.length > 18
-                                    ? `${chat.title.slice(0, 18)}...`
-                                    : chat.title}
+                                  {chat.title}
                                 </span>
                               )}
                             </div>

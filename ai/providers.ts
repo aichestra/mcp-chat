@@ -292,5 +292,3 @@ export const model = {
 };
 
 export const MODELS = Object.keys(languageModels);
-
-// Made with Bob

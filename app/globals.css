@@ -84,8 +84,8 @@
   --sidebar-primary: oklch(0.70 0.12 145);
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.70 0.12 145);
-  --sidebar-accent-foreground: oklch(0.18 0.02 210);
-  --sidebar-border: oklch(0.26 0.02 210);
+  --sidebar-accent-foreground: oklch(0.18 0.03 210);
+  --sidebar-border: oklch(0.26 0.03 210);
   --sidebar-ring: var(--ring);
   --font-sans: Montserrat, sans-serif;
   --font-serif: Merriweather, serif;
@@ -248,13 +248,77 @@
   --shadow-2xl: var(--shadow-2xl);
 }
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+  :root {
+    --background: oklch(0.98 0.01 51.32);
+    --foreground: oklch(0.26 0.02 352.40);
+    --card: oklch(0.98 0.01 51.32);
+    --card-foreground: oklch(0.26 0.02 352.40);
+    --popover: oklch(0.98 0.01 51.32);
+    --popover-foreground: oklch(0.26 0.02 352.40);
+    --primary: oklch(0.57 0.15 35.26);
+    --primary-foreground: oklch(1.00 0 0);
+    --secondary: oklch(0.96 0.01 51.32);
+    --secondary-foreground: oklch(0.26 0.02 352.40);
+    --muted: oklch(0.96 0.01 51.32);
+    --muted-foreground: oklch(0.84 0.02 52.63);
+    --accent: oklch(0.83 0.11 58.00);
+    --accent-foreground: oklch(0.26 0.02 352.40);
+    --destructive: oklch(0.51 0.16 20.19);
+    --destructive-foreground: oklch(1.00 0 0);
+    --border: oklch(0.90 0.01 51.32);
+    --input: oklch(0.90 0.01 51.32);
+    --ring: oklch(0.72 0.14 145);
+    --sidebar: oklch(0.96 0.01 51.32);
+    --sidebar-foreground: oklch(0.26 0.02 352.40);
+    --sidebar-accent: oklch(0.72 0.14 145);
+    --sidebar-accent-foreground: oklch(0.26 0.02 352.40);
+    --sidebar-border: oklch(0.90 0.01 51.32);
+    --sidebar-muted: oklch(0.94 0.01 51.32);
+    --sidebar-muted-foreground: oklch(0.84 0.02 52.63);
+    --radius: 0.5rem;
   }
-  body {
-    @apply bg-background text-foreground;
-    letter-spacing: var(--tracking-normal);
+
+  .dark {
+    --background: oklch(0.22 0.03 210);
+    --foreground: oklch(0.92 0.02 220);
+    --card: oklch(0.26 0.03 210);
+    --ring: oklch(0.72 0.14 145);
+    --accent: oklch(0.72 0.14 145);
+    --sidebar: oklch(0.18 0.03 210);
+    --sidebar-foreground: oklch(0.92 0.02 220);
+    --sidebar-accent: oklch(0.72 0.14 145);
+    --sidebar-accent-foreground: oklch(0.18 0.03 210);
+    --sidebar-border: oklch(0.26 0.03 210);
+    --sidebar-muted: oklch(0.26 0.03 210);
+    --sidebar-muted-foreground: oklch(0.84 0.02 52.63);
+  }
+}
+
+@layer components {
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+  
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
   }
 }
 
@@ -270,4 +334,26 @@
     /* Use Firefox-specific scrollbar hiding when supported */
     scrollbar-width: none;
   }
+}
+
+/* Line clamp utilities for text truncation */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }

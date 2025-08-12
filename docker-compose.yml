@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:16-alpine
+    container_name: mcp-chat-postgres
+    environment:
+      POSTGRES_USER: mcpuser
+      POSTGRES_PASSWORD: mcppassword
+      POSTGRES_DB: mcpchat
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mcpuser -d mcpchat"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # MCP Chat application
+  mcp-chat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcp-chat-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://mcpuser:mcppassword@postgres:5432/mcpchat
+      - NODE_ENV=production
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    # Run database migrations before starting the application
+    command: >
+      sh -c "pnpm db:migrate && pnpm start"
+
+volumes:
+  postgres_data:

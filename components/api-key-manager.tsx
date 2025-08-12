@@ -127,7 +127,9 @@ export function ApiKeyManager({ open, onOpenChange }: ApiKeyManagerProps) {
           <DialogTitle>API Key Settings</DialogTitle>
           <DialogDescription>
             Enter your own API keys for different AI providers. Keys are stored
-            securely in your browser's local storage.
+            securely in your browser's local storage and will persist
+            between sessions on this device. These keys are used to authenticate
+            with cloud AI providers like OpenAI, Anthropic, Groq, and XAI.
           </DialogDescription>
         </DialogHeader>
 
@@ -161,5 +163,3 @@ export function ApiKeyManager({ open, onOpenChange }: ApiKeyManagerProps) {
     </Dialog>
   );
 }
-
-// Made with Bob

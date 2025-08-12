@@ -51,6 +51,10 @@ export default function RootLayout({
               method: "POST",
             }
           ]}
+          developmentOptions={{
+            // In dev, always treat as HUMAN and silence warnings
+            bypass: true,
+          }}
         />
       </head>
       <body className={`${inter.className}`}>

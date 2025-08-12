@@ -119,6 +119,12 @@ export async function POST(req: Request) {
 
     Multiple tools can be used in a single response and multiple steps can be used to answer the user's question.
 
+    Reasoning protocol:
+    - Before replying, think step-by-step INSIDE <think>...</think> tags.
+    - Keep all chain-of-thought and intermediate reasoning strictly inside <think> tags so the UI can render it separately.
+    - Do not repeat the content of <think> tags in the final visible answer.
+    - Use tools normally; tool results should be summarized in the final answer, not inside <think>.
+
     ## Response Format
     - Markdown is supported.
     - Respond according to tool's response.

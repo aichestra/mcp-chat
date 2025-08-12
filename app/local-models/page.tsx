@@ -55,20 +55,7 @@ const LOCAL_MODELS_STORAGE_KEY = "local-openai-models";
 
 export default function LocalModelsPage() {
   // Initialize state from localStorage if available
-  const [localModels, setLocalModels] = useState<LocalModel[]>(() => {
-    // This function only runs on the client during initial render
-    if (typeof window !== 'undefined') {
-      const storedModels = localStorage.getItem(LOCAL_MODELS_STORAGE_KEY);
-      if (storedModels) {
-        try {
-          return JSON.parse(storedModels);
-        } catch (error) {
-          console.error("Error parsing stored local models:", error);
-        }
-      }
-    }
-    return [];
-  });
+  const [localModels, setLocalModels] = useState<LocalModel[]>([]);
   const [view, setView] = useState<"list" | "add">("list");
   const [editingModelId, setEditingModelId] = useState<string | null>(null);
   const [newModel, setNewModel] = useState<Omit<LocalModel, "id" | "isActive">>({
@@ -78,6 +65,25 @@ export default function LocalModelsPage() {
   });
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [activeCount, setActiveCount] = useState<number>(0);
+  const [isClient, setIsClient] = useState<boolean>(false);
+
+  // Set isClient to true when component mounts
+  useEffect(() => {
+    setIsClient(true);
+    
+    // Load models from localStorage
+    const storedModels = localStorage.getItem(LOCAL_MODELS_STORAGE_KEY);
+    if (storedModels) {
+      try {
+        const parsedModels = JSON.parse(storedModels);
+        setLocalModels(parsedModels);
+        setActiveCount(parsedModels.filter((model: LocalModel) => model.isActive).length);
+      } catch (error) {
+        console.error("Error parsing stored local models:", error);
+      }
+    }
+  }, []);
 
   // Function to fetch available models from an Ollama endpoint
   const fetchOllamaModels = useCallback(async (baseUrl: string, apiKey?: string): Promise<string[]> => {
@@ -140,12 +146,13 @@ export default function LocalModelsPage() {
     }
   }, []);
 
-  // No need to load from localStorage on mount since we're initializing from localStorage
-
   // Save local models to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem(LOCAL_MODELS_STORAGE_KEY, JSON.stringify(localModels));
-  }, [localModels]);
+    if (isClient && localModels.length > 0) {
+      localStorage.setItem(LOCAL_MODELS_STORAGE_KEY, JSON.stringify(localModels));
+      setActiveCount(localModels.filter(model => model.isActive).length);
+    }
+  }, [localModels, isClient]);
 
   // Function to refresh available models for a specific model
   const refreshAvailableModels = async (modelId: string) => {
@@ -306,7 +313,7 @@ export default function LocalModelsPage() {
           <div className="text-right">
             <p className="text-sm text-muted-foreground">Active endpoints</p>
             <p className="text-2xl font-bold text-primary">
-              {typeof window !== 'undefined' ? localModels.filter(model => model.isActive).length : 0}
+              {activeCount}
             </p>
           </div>
         </div>
@@ -316,7 +323,11 @@ export default function LocalModelsPage() {
       <div className="flex-1 flex flex-col min-h-0">
         {view === "list" ? (
           <div className="flex-1 p-3 sm:p-4 lg:p-6 overflow-auto">
-            {localModels.length > 0 ? (
+            {!isClient ? (
+              <div className="text-center py-8">
+                <div className="animate-pulse">Loading...</div>
+              </div>
+            ) : localModels.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 auto-rows-fr">
                 {localModels.map((model) => (
                   <div

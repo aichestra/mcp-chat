@@ -316,38 +316,43 @@ export function ChatSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => router.push("/mcp-servers")}
+                  asChild
                   className={cn(
                     "w-full flex items-center gap-2 transition-all",
-                    "hover:bg-secondary/50 active:bg-secondary/70"
+                    "hover:bg-secondary/50 active:bg-secondary/70",
+                    pathname === "/mcp-servers" ? "bg-secondary/60 hover:bg-secondary/60" : ""
                   )}
                   tooltip={isCollapsed ? "MCP Servers" : undefined}
                 >
-                  <ServerIcon
-                    className={cn(
-                      "h-4 w-4 flex-shrink-0",
-                      activeServersCount > 0
-                        ? "text-primary"
-                        : "text-muted-foreground"
-                    )}
-                  />
-                  {!isCollapsed && (
-                    <span className="flex-grow text-sm text-foreground/80">
-                      MCP Servers
-                    </span>
-                  )}
-                  {activeServersCount > 0 && !isCollapsed ? (
-                    <Badge
-                      variant="secondary"
-                      className="ml-auto text-[10px] px-1.5 py-0 h-5 bg-secondary/80"
-                    >
-                      {activeServersCount}
-                    </Badge>
-                  ) : activeServersCount > 0 && isCollapsed ? (
-                    <SidebarMenuBadge className="bg-secondary/80 text-secondary-foreground">
-                      {activeServersCount}
-                    </SidebarMenuBadge>
-                  ) : null}
+                  <Link href="/mcp-servers" className="flex items-center justify-between w-full gap-1">
+                    <div className="flex items-center min-w-0 overflow-hidden flex-1">
+                      <ServerIcon
+                        className={cn(
+                          "h-4 w-4 flex-shrink-0",
+                          activeServersCount > 0
+                            ? "text-primary"
+                            : "text-muted-foreground"
+                        )}
+                      />
+                      {!isCollapsed && (
+                        <span className="ml-2 flex-grow text-sm text-foreground/80">
+                          MCP Servers
+                        </span>
+                      )}
+                    </div>
+                    {activeServersCount > 0 && !isCollapsed ? (
+                      <Badge
+                        variant="secondary"
+                        className="ml-auto text-[10px] px-1.5 py-0 h-5 bg-secondary/80"
+                      >
+                        {activeServersCount}
+                      </Badge>
+                    ) : activeServersCount > 0 && isCollapsed ? (
+                      <SidebarMenuBadge className="bg-secondary/80 text-secondary-foreground">
+                        {activeServersCount}
+                      </SidebarMenuBadge>
+                    ) : null}
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

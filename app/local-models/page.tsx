@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,13 +28,47 @@ interface LocalModel {
   baseUrl: string;
   apiKey?: string;
   isActive: boolean;
+  availableModels?: string[];
+}
+
+// Ollama model response type
+interface OllamaModel {
+  name: string;
+  modified_at: string;
+  size: number;
+  digest: string;
+  details: {
+    format: string;
+    family: string;
+    families: string[];
+    parameter_size: string;
+    quantization_level: string;
+  };
+}
+
+interface OllamaModelsResponse {
+  models: OllamaModel[];
 }
 
 // Local storage key
 const LOCAL_MODELS_STORAGE_KEY = "local-openai-models";
 
 export default function LocalModelsPage() {
-  const [localModels, setLocalModels] = useState<LocalModel[]>([]);
+  // Initialize state from localStorage if available
+  const [localModels, setLocalModels] = useState<LocalModel[]>(() => {
+    // This function only runs on the client during initial render
+    if (typeof window !== 'undefined') {
+      const storedModels = localStorage.getItem(LOCAL_MODELS_STORAGE_KEY);
+      if (storedModels) {
+        try {
+          return JSON.parse(storedModels);
+        } catch (error) {
+          console.error("Error parsing stored local models:", error);
+        }
+      }
+    }
+    return [];
+  });
   const [view, setView] = useState<"list" | "add">("list");
   const [editingModelId, setEditingModelId] = useState<string | null>(null);
   const [newModel, setNewModel] = useState<Omit<LocalModel, "id" | "isActive">>({
@@ -42,26 +76,108 @@ export default function LocalModelsPage() {
     baseUrl: "",
     apiKey: "",
   });
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // Load local models from localStorage on initial mount
-  useEffect(() => {
-    const storedModels = localStorage.getItem(LOCAL_MODELS_STORAGE_KEY);
-    if (storedModels) {
+  // Function to fetch available models from an Ollama endpoint
+  const fetchOllamaModels = useCallback(async (baseUrl: string, apiKey?: string): Promise<string[]> => {
+    try {
+      // Extract the base URL without the /v1 suffix
+      const baseApiUrl = baseUrl.replace(/\/v1\/?$/, '');
+      
+      // Try different API endpoints based on the server type
+      // First try Ollama's API
       try {
-        setLocalModels(JSON.parse(storedModels));
-      } catch (error) {
-        console.error("Error parsing stored local models:", error);
-        setLocalModels([]);
+        const ollamaUrl = `${baseApiUrl}/api/tags`;
+        
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+        
+        if (apiKey) {
+          headers['Authorization'] = `Bearer ${apiKey}`;
+        }
+        
+        const response = await fetch(ollamaUrl, { headers });
+        
+        if (response.ok) {
+          const data: OllamaModelsResponse = await response.json();
+          return data.models.map(model => model.name);
+        }
+      } catch (ollamaError) {
+        console.log('Not an Ollama endpoint or error:', ollamaError);
       }
+      
+      // If Ollama API fails, try OpenAI compatible API
+      try {
+        const openaiUrl = `${baseApiUrl}/models`;
+        
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+        
+        if (apiKey) {
+          headers['Authorization'] = `Bearer ${apiKey}`;
+        }
+        
+        const response = await fetch(openaiUrl, { headers });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.data && Array.isArray(data.data)) {
+            return data.data.map((model: any) => model.id || model.name);
+          }
+        }
+      } catch (openaiError) {
+        console.log('Not an OpenAI compatible endpoint or error:', openaiError);
+      }
+      
+      // If we can't detect models, just add a default one based on the endpoint
+      return ['default'];
+    } catch (error) {
+      console.error('Error fetching models:', error);
+      return ['default']; // Return a default model name so we have something to work with
     }
   }, []);
+
+  // No need to load from localStorage on mount since we're initializing from localStorage
 
   // Save local models to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem(LOCAL_MODELS_STORAGE_KEY, JSON.stringify(localModels));
   }, [localModels]);
 
-  const addModel = () => {
+  // Function to refresh available models for a specific model
+  const refreshAvailableModels = async (modelId: string) => {
+    const model = localModels.find(m => m.id === modelId);
+    if (!model) return;
+
+    setIsLoading(true);
+    setFetchError(null);
+    
+    try {
+      const models = await fetchOllamaModels(model.baseUrl, model.apiKey);
+      
+      // Update the model with available models
+      setLocalModels(localModels.map(m =>
+        m.id === modelId ? { ...m, availableModels: models } : m
+      ));
+      
+      if (models.length === 0) {
+        toast.warning("No models found at this endpoint");
+      } else {
+        toast.success(`Found ${models.length} models`);
+      }
+    } catch (error) {
+      console.error("Error fetching models:", error);
+      setFetchError(error instanceof Error ? error.message : "Unknown error");
+      toast.error("Failed to fetch models");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addModel = async () => {
     if (!newModel.name || !newModel.baseUrl) return;
     
     const id = `local-model-${Date.now()}`;
@@ -71,10 +187,33 @@ export default function LocalModelsPage() {
       isActive: false,
     };
     
-    setLocalModels([...localModels, model]);
-    setNewModel({ name: "", baseUrl: "", apiKey: "" });
-    setView("list");
-    toast.success("Local model added successfully");
+    // Add the model first
+    const updatedModels = [...localModels, model];
+    setLocalModels(updatedModels);
+    
+    // Then try to fetch available models
+    setIsLoading(true);
+    try {
+      const availableModels = await fetchOllamaModels(model.baseUrl, model.apiKey);
+      
+      // Update the model with available models
+      setLocalModels(updatedModels.map(m =>
+        m.id === id ? { ...m, availableModels } : m
+      ));
+      
+      if (availableModels.length === 0) {
+        toast.warning("Added endpoint, but no models were found");
+      } else {
+        toast.success(`Added endpoint with ${availableModels.length} models`);
+      }
+    } catch (error) {
+      console.error("Error fetching models:", error);
+      toast.warning("Added endpoint, but couldn't fetch models");
+    } finally {
+      setIsLoading(false);
+      setNewModel({ name: "", baseUrl: "", apiKey: "" });
+      setView("list");
+    }
   };
 
   const removeModel = (id: string) => {
@@ -98,22 +237,53 @@ export default function LocalModelsPage() {
     setView("add");
   };
 
-  const updateModel = () => {
+  const updateModel = async () => {
     if (!editingModelId || !newModel.name || !newModel.baseUrl) return;
     
+    // First update the model
     const updated = localModels.map(model =>
-      model.id === editingModelId ? { 
-        ...model, 
+      model.id === editingModelId ? {
+        ...model,
         name: newModel.name,
         baseUrl: newModel.baseUrl,
         apiKey: newModel.apiKey,
       } : model
     );
     setLocalModels(updated);
+    
+    // Then try to fetch available models if the URL or API key changed
+    const originalModel = localModels.find(m => m.id === editingModelId);
+    if (originalModel &&
+        (originalModel.baseUrl !== newModel.baseUrl ||
+         originalModel.apiKey !== newModel.apiKey)) {
+      
+      setIsLoading(true);
+      try {
+        const availableModels = await fetchOllamaModels(newModel.baseUrl, newModel.apiKey);
+        
+        // Update the model with available models
+        setLocalModels(updated.map(m =>
+          m.id === editingModelId ? { ...m, availableModels } : m
+        ));
+        
+        if (availableModels.length === 0) {
+          toast.warning("Updated endpoint, but no models were found");
+        } else {
+          toast.success(`Updated endpoint with ${availableModels.length} models`);
+        }
+      } catch (error) {
+        console.error("Error fetching models:", error);
+        toast.warning("Updated endpoint, but couldn't fetch models");
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      toast.success("Local model updated successfully");
+    }
+    
     setEditingModelId(null);
     setNewModel({ name: "", baseUrl: "", apiKey: "" });
     setView("list");
-    toast.success("Local model updated successfully");
   };
 
   const handleFormCancel = () => {
@@ -135,7 +305,9 @@ export default function LocalModelsPage() {
           </div>
           <div className="text-right">
             <p className="text-sm text-muted-foreground">Active endpoints</p>
-            <p className="text-2xl font-bold text-primary">{localModels.filter(model => model.isActive).length}</p>
+            <p className="text-2xl font-bold text-primary">
+              {typeof window !== 'undefined' ? localModels.filter(model => model.isActive).length : 0}
+            </p>
           </div>
         </div>
       </div>
@@ -173,14 +345,48 @@ export default function LocalModelsPage() {
                     {/* Model Status */}
                     <div className="flex items-center gap-2 mb-3">
                       <div className={`w-2 h-2 rounded-full ${
-                        model.isActive 
-                          ? "bg-green-500 animate-pulse" 
+                        model.isActive
+                          ? "bg-green-500 animate-pulse"
                           : "bg-gray-400"
                       }`} />
                       <span className="text-xs text-muted-foreground font-medium">
                         {model.isActive ? "Active" : "Inactive"}
                       </span>
                     </div>
+
+                    {/* Available Models */}
+                    {model.availableModels && model.availableModels.length > 0 && (
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-muted-foreground">Available Models</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              refreshAvailableModels(model.id);
+                            }}
+                            className="p-1 rounded-md hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+                            title="Refresh models"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                              <path d="M21 3v5h-5" />
+                              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                              <path d="M3 21v-5h5" />
+                            </svg>
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
+                          {model.availableModels.map((modelName) => (
+                            <span
+                              key={modelName}
+                              className="inline-flex items-center text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-primary/10 text-primary"
+                            >
+                              {modelName}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     
                     {/* Action Buttons */}
                     <div className="flex items-center gap-2 mb-3">
@@ -291,9 +497,19 @@ export default function LocalModelsPage() {
               </Button>
               <Button
                 onClick={editingModelId ? updateModel : addModel}
-                disabled={!newModel.name || !newModel.baseUrl}
+                disabled={!newModel.name || !newModel.baseUrl || isLoading}
               >
-                {editingModelId ? "Save Changes" : "Add Endpoint"}
+                {isLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    {editingModelId ? "Saving..." : "Adding..."}
+                  </>
+                ) : (
+                  editingModelId ? "Save Changes" : "Add Endpoint"
+                )}
               </Button>
             </>
           )}

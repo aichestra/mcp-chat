@@ -340,23 +340,26 @@ export function ChatSidebar() {
               
               <SidebarMenuItem>
                 <SidebarMenuButton
+                  asChild
                   className={cn(
                     "w-full flex items-center gap-2 transition-all",
-                    "hover:bg-secondary/50 active:bg-secondary/70"
+                    "hover:bg-secondary/50 active:bg-secondary/70",
+                    pathname === "/local-models" ? "bg-secondary/60 hover:bg-secondary/60" : ""
                   )}
                   tooltip={isCollapsed ? "Local Models" : undefined}
-                  onClick={() => setLocalModelsSettingsOpen(true)}
                 >
-                  <div className="flex items-center min-w-0 overflow-hidden flex-1">
-                    <Sparkles
-                      className="h-4 w-4 flex-shrink-0 text-muted-foreground"
-                    />
-                    {!isCollapsed && (
-                      <span className="ml-2 flex-grow text-sm text-foreground/80">
-                        Local Models
-                      </span>
-                    )}
-                  </div>
+                  <Link href="/local-models" className="flex items-center justify-between w-full gap-1">
+                    <div className="flex items-center min-w-0 overflow-hidden flex-1">
+                      <Sparkles
+                        className="h-4 w-4 flex-shrink-0 text-muted-foreground"
+                      />
+                      {!isCollapsed && (
+                        <span className="ml-2 flex-grow text-sm text-foreground/80">
+                          Local Models
+                        </span>
+                      )}
+                    </div>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               
@@ -523,6 +526,15 @@ export function ChatSidebar() {
                 >
                   <Key className="mr-2 h-4 w-4 hover:text-sidebar-accent" />
                   API Keys
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    router.push("/local-models");
+                  }}
+                >
+                  <Sparkles className="mr-2 h-4 w-4 hover:text-sidebar-accent" />
+                  Local Models
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onSelect={(e) => {

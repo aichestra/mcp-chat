@@ -35,6 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import Image from "next/image";
 import { ApiKeyManager } from "./api-key-manager";
+import { LocalModelsManager } from "./local-models-manager";
 import { ThemeToggle } from "./theme-toggle";
 import { getUserId, updateUserId } from "@/lib/user-id";
 import { useChats } from "@/lib/hooks/use-chats";
@@ -69,6 +70,7 @@ export function ChatSidebar() {
   const pathname = usePathname();
   const [userId, setUserId] = useState<string>("");
   const [apiKeySettingsOpen, setApiKeySettingsOpen] = useState(false);
+  const [localModelsSettingsOpen, setLocalModelsSettingsOpen] = useState(false);
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
   const [editUserIdOpen, setEditUserIdOpen] = useState(false);
@@ -310,10 +312,54 @@ export function ChatSidebar() {
               isCollapsed ? "sr-only" : ""
             )}
           >
-            MCP Servers
+            Settings
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  className={cn(
+                    "w-full flex items-center gap-2 transition-all",
+                    "hover:bg-secondary/50 active:bg-secondary/70"
+                  )}
+                  tooltip={isCollapsed ? "API Keys" : undefined}
+                  onClick={() => setApiKeySettingsOpen(true)}
+                >
+                  <div className="flex items-center min-w-0 overflow-hidden flex-1">
+                    <Key
+                      className="h-4 w-4 flex-shrink-0 text-muted-foreground"
+                    />
+                    {!isCollapsed && (
+                      <span className="ml-2 flex-grow text-sm text-foreground/80">
+                        API Keys
+                      </span>
+                    )}
+                  </div>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  className={cn(
+                    "w-full flex items-center gap-2 transition-all",
+                    "hover:bg-secondary/50 active:bg-secondary/70"
+                  )}
+                  tooltip={isCollapsed ? "Local Models" : undefined}
+                  onClick={() => setLocalModelsSettingsOpen(true)}
+                >
+                  <div className="flex items-center min-w-0 overflow-hidden flex-1">
+                    <Sparkles
+                      className="h-4 w-4 flex-shrink-0 text-muted-foreground"
+                    />
+                    {!isCollapsed && (
+                      <span className="ml-2 flex-grow text-sm text-foreground/80">
+                        Local Models
+                      </span>
+                    )}
+                  </div>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
@@ -504,6 +550,11 @@ export function ChatSidebar() {
         <ApiKeyManager
           open={apiKeySettingsOpen}
           onOpenChange={setApiKeySettingsOpen}
+        />
+        
+        <LocalModelsManager
+          open={localModelsSettingsOpen}
+          onOpenChange={setLocalModelsSettingsOpen}
         />
       </SidebarFooter>
 

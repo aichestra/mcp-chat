@@ -2,7 +2,7 @@
 
 ## Background
 
-**Scira MCP Chat** is an open-source AI chatbot application that integrates with the Model Context Protocol (MCP). Built with Next.js and the AI SDK by Vercel, it provides a modern, responsive chat interface that can connect to multiple AI providers and extend capabilities through MCP servers.
+**Open MCP Chat** is an open-source AI chatbot application that integrates with the Model Context Protocol (MCP). Built with Next.js and the AI SDK by Vercel, it provides a modern, responsive chat interface that can connect to multiple AI providers and extend capabilities through MCP servers.
 
 ### Key Features:
 - **Multi-AI Provider Support**: Integrates with Groq, XAI, and other providers via AI SDK

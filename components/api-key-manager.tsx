@@ -51,21 +51,6 @@ const API_KEYS_CONFIG: ApiKeyConfig[] = [
     label: "XAI API Key",
     placeholder: "xai-...",
   },
-  // Local OpenAI-compatible backend
-  {
-    name: "Local Base URL",
-    key: "local_base_url",
-    storageKey: "LOCAL_OPENAI_BASE_URL",
-    label: "Local OpenAI Base URL",
-    placeholder: "http://localhost:11434/v1",
-  },
-  {
-    name: "Local API Key",
-    key: "local_api_key",
-    storageKey: "LOCAL_OPENAI_API_KEY",
-    label: "Local OpenAI API Key (optional)",
-    placeholder: "leave empty if not required",
-  },
 ];
 
 interface ApiKeyManagerProps {
@@ -142,7 +127,7 @@ export function ApiKeyManager({ open, onOpenChange }: ApiKeyManagerProps) {
           <DialogTitle>API Key Settings</DialogTitle>
           <DialogDescription>
             Enter your own API keys for different AI providers. Keys are stored
-            securely in your browser&apos;s local storage.
+            securely in your browser's local storage.
           </DialogDescription>
         </DialogHeader>
 
@@ -176,3 +161,5 @@ export function ApiKeyManager({ open, onOpenChange }: ApiKeyManagerProps) {
     </Dialog>
   );
 }
+
+// Made with Bob

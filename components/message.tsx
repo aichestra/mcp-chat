@@ -156,14 +156,14 @@ const PurePreviewMessage = ({
   return (
     <div
       className={cn(
-        "w-full mx-auto px-4 group/message",
+        "w-full px-4 group/message",
         message.role === "assistant" ? "mb-8" : "mb-6"
       )}
       data-role={message.role}
     >
       <div
         className={cn(
-          "flex gap-4 w-full group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl",
+          "flex gap-4 w-full group-data-[role=user]/message:ml-auto",
           "group-data-[role=user]/message:w-fit"
         )}
       >

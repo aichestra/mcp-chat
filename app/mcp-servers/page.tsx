@@ -155,7 +155,7 @@ export default function MCPServersPage() {
     <div className="flex-1 flex flex-col h-full w-full">
       {/* Header */}
       <div className="border-b border-border p-4 sm:p-6 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pl-12 sm:pl-16">
           <div>
             <h1 className="text-2xl font-bold text-foreground">MCP Server Management</h1>
             <p className="text-muted-foreground mt-1">

@@ -34,7 +34,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import Image from "next/image";
-import { MCPServerManager } from "./mcp-server-manager";
 import { ApiKeyManager } from "./api-key-manager";
 import { ThemeToggle } from "./theme-toggle";
 import { getUserId, updateUserId } from "@/lib/user-id";
@@ -69,7 +68,6 @@ export function ChatSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const [userId, setUserId] = useState<string>("");
-  const [mcpSettingsOpen, setMcpSettingsOpen] = useState(false);
   const [apiKeySettingsOpen, setApiKeySettingsOpen] = useState(false);
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
@@ -78,10 +76,7 @@ export function ChatSidebar() {
 
   // Get MCP server data from context
   const {
-    mcpServers,
-    setMcpServers,
     selectedMcpServers,
-    setSelectedMcpServers,
   } = useMCP();
 
   // Initialize userId
@@ -321,7 +316,7 @@ export function ChatSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => setMcpSettingsOpen(true)}
+                  onClick={() => router.push("/mcp-servers")}
                   className={cn(
                     "w-full flex items-center gap-2 transition-all",
                     "hover:bg-secondary/50 active:bg-secondary/70"
@@ -360,22 +355,18 @@ export function ChatSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-border/40 mt-auto">
+      <SidebarFooter className="mt-auto p-4">
         <div
           className={`flex flex-col ${isCollapsed ? "items-center" : ""} gap-3`}
         >
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
             <Button
-              variant="default"
-              className={cn(
-                "w-full bg-primary text-primary-foreground hover:bg-primary/90",
-                isCollapsed ? "w-8 h-8 p-0" : ""
-              )}
               onClick={handleNewChat}
-              title={isCollapsed ? "New Chat" : undefined}
+              className="w-full gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+              size="sm"
             >
-              <PlusCircle className={`${isCollapsed ? "" : "mr-2"} h-4 w-4`} />
-              {!isCollapsed && <span>New Chat</span>}
+              <PlusCircle className="h-4 w-4" />
+              New Chat
             </Button>
           </motion.div>
 
@@ -466,7 +457,8 @@ export function ChatSidebar() {
                 <DropdownMenuItem
                   onSelect={(e) => {
                     e.preventDefault();
-                    setMcpSettingsOpen(true);
+                    console.log("Navigating to MCP servers page...");
+                    router.push("/mcp-servers");
                   }}
                 >
                   <Settings className="mr-2 h-4 w-4 hover:text-sidebar-accent" />
@@ -503,15 +495,6 @@ export function ChatSidebar() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-
-        <MCPServerManager
-          servers={mcpServers}
-          onServersChange={setMcpServers}
-          selectedServers={selectedMcpServers}
-          onSelectedServersChange={setSelectedMcpServers}
-          open={mcpSettingsOpen}
-          onOpenChange={setMcpSettingsOpen}
-        />
 
         <ApiKeyManager
           open={apiKeySettingsOpen}

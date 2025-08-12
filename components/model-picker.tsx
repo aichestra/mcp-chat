@@ -159,9 +159,9 @@ export const ModelPicker = ({
           align="start"
           className="bg-background/95 dark:bg-muted/95 backdrop-blur-sm border-border/80 rounded-lg overflow-hidden p-0 w-[280px] sm:w-[350px] md:w-[515px]"
         >
-          <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] md:grid-cols-[200px_1fr] items-start">
+          <div className="flex flex-col items-start">
             {/* Model selector column */}
-            <div className="sm:border-r border-border/40 bg-muted/20 p-0 pr-1">
+            <div className="bg-muted/20 p-0 pr-1">
               <SelectGroup className="space-y-1">
                 {MODELS.map((id) => {
                   const modelId = id as modelID;
@@ -198,7 +198,7 @@ export const ModelPicker = ({
             </div>
 
             {/* Model details column - hidden on smallest screens, visible on sm+ */}
-            <div className="sm:block hidden p-2 sm:p-3 md:p-4 flex-col">
+            <div className="sm:block hidden p-2 sm:p-3 md:p-4 border-t border-border/30">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   {getProviderIcon(currentModelDetails.provider)}

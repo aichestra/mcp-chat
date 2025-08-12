@@ -271,36 +271,38 @@ function Sidebar({
         )}
       />
       
-      {/* Drag handle as a separate element */}
-      <div
-        onMouseDown={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          const startX = e.clientX
-          const startWidth = sidebarWidthPx
-          const onMove = (ev: MouseEvent) => {
-            ev.preventDefault()
-            const newWidth = startWidth + (ev.clientX - startX)
-            // Clamp width between 14rem (224px) and 40rem (640px)
-            const clampedWidth = Math.max(224, Math.min(640, newWidth))
-            setSidebarWidthPx(clampedWidth)
-          }
-          const onUp = () => {
-            window.removeEventListener('mousemove', onMove)
-            window.removeEventListener('mouseup', onUp)
-          }
-          window.addEventListener('mousemove', onMove)
-          window.addEventListener('mouseup', onUp)
-        }}
-        className="absolute inset-y-0 z-40 cursor-col-resize select-none"
-        style={{ 
-          left: `${sidebarWidthPx}px`,
-          width: 2,
-          marginLeft: -1,
-          backgroundColor: 'rgba(255, 255, 255, 0.1)'
-        }}
-        title="Drag to resize sidebar"
-      />
+      {/* Drag handle as a separate element - only visible when sidebar is expanded */}
+      {state === "expanded" && (
+        <div
+          onMouseDown={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            const startX = e.clientX
+            const startWidth = sidebarWidthPx
+            const onMove = (ev: MouseEvent) => {
+              ev.preventDefault()
+              const newWidth = startWidth + (ev.clientX - startX)
+              // Clamp width between 14rem (224px) and 40rem (640px)
+              const clampedWidth = Math.max(224, Math.min(640, newWidth))
+              setSidebarWidthPx(clampedWidth)
+            }
+            const onUp = () => {
+              window.removeEventListener('mousemove', onMove)
+              window.removeEventListener('mouseup', onUp)
+            }
+            window.addEventListener('mousemove', onMove)
+            window.addEventListener('mouseup', onUp)
+          }}
+          className="absolute inset-y-0 z-40 cursor-col-resize select-none"
+          style={{
+            left: `${sidebarWidthPx}px`,
+            width: 2,
+            marginLeft: -1,
+            backgroundColor: 'rgba(255, 255, 255, 0.1)'
+          }}
+          title="Drag to resize sidebar"
+        />
+      )}
       
       {/* Remove the old drag handle */}
       <div
@@ -313,7 +315,7 @@ function Sidebar({
           // Adjust the padding for floating and inset variants.
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
-            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
+            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)",
           className
         )}
         {...props}

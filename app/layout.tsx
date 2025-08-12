@@ -69,7 +69,7 @@ export default function RootLayout({
                   </button>
                 </SidebarTrigger>
               </div>
-              <div className="flex-1 flex justify-center">{children}</div>
+              <div className="flex-1 flex">{children}</div>
             </main>
           </div>
         </Providers>

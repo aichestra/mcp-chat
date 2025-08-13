@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useRef } from "react";
+import { createContext, useContext, useEffect, useRef } from "react";
 import { useLocalStorage } from "@/lib/hooks/use-local-storage";
 
 export interface KeyValuePair {
@@ -109,6 +109,24 @@ export function MCPProvider({ children }: { children: React.ReactNode }) {
     return mcpServers.find((server) => server.id === serverId);
   };
 
+  // Auto-connect any selected servers that are not yet connected
+  useEffect(() => {
+    if (!selectedMcpServers || selectedMcpServers.length === 0) return;
+
+    selectedMcpServers.forEach((serverId) => {
+      const server = getServerById(serverId);
+      if (!server) return;
+      const needsConnect = !server.status || server.status === "disconnected" || server.status === "error";
+      if (needsConnect) {
+        updateServerStatus(server.id, "connecting");
+        startServer(server.id).catch((error) => {
+          console.error(`Error auto-connecting server ${server.name}:`, error);
+          updateServerStatus(server.id, "error", error instanceof Error ? error.message : String(error));
+        });
+      }
+    });
+  }, [selectedMcpServers, mcpServers]);
+
   // Update server status
   const updateServerStatus = (
     serverId: string,
@@ -139,14 +157,12 @@ export function MCPProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  // Get active servers formatted for API usage
+  // Get selected servers formatted for API usage
+  // Do not require "connected" status here; the API will attempt to connect and fetch tools.
   const getActiveServersForApi = (): MCPServerApi[] => {
     return selectedMcpServers
       .map((id) => getServerById(id))
-      .filter(
-        (server): server is MCPServer =>
-          !!server && server.status === "connected"
-      )
+      .filter((server): server is MCPServer => !!server)
       .map((server) => ({
         type: server.type,
         url: server.url,

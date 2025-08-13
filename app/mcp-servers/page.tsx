@@ -33,6 +33,7 @@ export default function MCPServersPage() {
     setSelectedMcpServers,
     startServer,
     stopServer,
+    updateServerStatus,
   } = useMCP();
 
   const [view, setView] = useState<"list" | "add">("list");
@@ -73,9 +74,22 @@ export default function MCPServersPage() {
 
   const toggleServer = (id: string) => {
     if (selectedMcpServers.includes(id)) {
+      // Deselect server, but do not stop the running connection (keeps cache/tools warm)
       setSelectedMcpServers(selectedMcpServers.filter(serverId => serverId !== id));
     } else {
+      // Select server and ensure it is connected so tools are available to chats
       setSelectedMcpServers([...selectedMcpServers, id]);
+
+      const server = mcpServers.find(s => s.id === id);
+      if (server) {
+        if (!server.status || server.status === "disconnected" || server.status === "error") {
+          updateServerStatus(server.id, "connecting");
+          startServer(id).catch((error) => {
+            console.error(`Error connecting server ${server.name}:`, error);
+            updateServerStatus(server.id, "error", error instanceof Error ? error.message : String(error));
+          });
+        }
+      }
     }
   };
 

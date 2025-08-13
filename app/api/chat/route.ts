@@ -95,6 +95,9 @@ export async function POST(req: Request) {
   // Initialize MCP clients using the already running persistent HTTP/SSE servers
   const { tools, cleanup } = await initializeMCPClients(mcpServers, req.signal);
 
+  console.log("mcpServers param:", JSON.stringify(mcpServers));
+  console.log("registered MCP tool names:", Object.keys(tools || {}));
+
   console.log("messages", messages);
   console.log("parts", messages.map(m => m.parts.map(p => p)));
 

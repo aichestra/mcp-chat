@@ -38,6 +38,8 @@ This will:
 
 The application will be available at http://localhost:3000
 
+![](../images/open-mcp-chat.png)
+
 ## Database Initialization
 
 The Docker Compose setup handles database initialization automatically:

@@ -22,7 +22,7 @@ import {
   Code,
   Brain,
   Lightbulb,
-  Image,
+  Image as ImageIcon,
   Gauge,
   Rocket,
   Bot,
@@ -80,7 +80,7 @@ export const ModelPicker = ({
       case "research":
         return <Lightbulb className="h-2.5 w-2.5" />;
       case "vision":
-        return <Image className="h-2.5 w-2.5" />;
+        return <ImageIcon className="h-2.5 w-2.5" />;
       case "fast":
       case "rapid":
         return <Bolt className="h-2.5 w-2.5" />;

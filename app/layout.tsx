@@ -44,18 +44,16 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <BotIdClient
-          protect={[
-            {
-              path: "/api/chat",
-              method: "POST",
-            }
-          ]}
-          developmentOptions={{
-            // In dev, always treat as HUMAN and silence warnings
-            bypass: true,
-          }}
-        />
+        {process.env.NEXT_PUBLIC_ENABLE_BOTID === "true" && (
+          <BotIdClient
+            protect={[
+              {
+                path: "/api/chat",
+                method: "POST",
+              }
+            ]}
+          />
+        )}
       </head>
       <body className={`${inter.className}`}>
         <Providers>

@@ -113,9 +113,9 @@ export function LocalModelsManager({ open, onOpenChange }: LocalModelsManagerPro
           <DialogTitle>Local Models Settings</DialogTitle>
           <DialogDescription>
             Configure your local AI models. Settings are stored
-            securely in your browser's local storage and will persist
+            securely in your browser&apos;s local storage and will persist
             between sessions on this device. These settings are used to connect
-            to your local AI models when using the "gpt-oss-20b" model.
+            to your local AI models when using the &quot;gpt-oss-20b&quot; model.
           </DialogDescription>
         </DialogHeader>
 

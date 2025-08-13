@@ -44,6 +44,9 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
+COPY --from=builder /app/lib/db ./lib/db
+COPY --from=builder /app/drizzle ./drizzle
 
 # Set the correct permissions
 USER nextjs
@@ -54,5 +57,5 @@ EXPOSE 3000
 # Set the environment variable for the port
 ENV PORT 3000
 
-# Run the application
-CMD ["pnpm", "start"]
+# Run the application using npm (available in the Node base image)
+CMD ["npm", "run", "start"]

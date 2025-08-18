@@ -1,10 +1,18 @@
 "use client";
+
+console.log('=== MODEL PICKER LOADING ===');
+console.log('Model picker: About to import from providers...');
+
 import {
-  MODELS,
   modelDetails,
   type modelID,
   defaultModel,
+  refreshModels,
+  getModelIDs,
 } from "@/ai/providers";
+
+console.log('Model picker: Imported refreshModels:', typeof refreshModels);
+console.log('Model picker: Imported getModelIDs:', typeof getModelIDs);
 import {
   Select,
   SelectContent,
@@ -39,18 +47,97 @@ export const ModelPicker = ({
   setSelectedModel,
 }: ModelPickerProps) => {
   const [hoveredModel, setHoveredModel] = useState<modelID | null>(null);
+  const [modelIds, setModelIds] = useState<string[]>(getModelIDs());
+
+  // Debug log for initial model IDs
+  console.log('Model picker: Initial model IDs:', modelIds);
+  console.log('Model picker: Selected model:', selectedModel);
+  console.log('Model picker: Is selected model in available models?', modelIds.includes(selectedModel));
 
   // Ensure we always have a valid model ID
-  const validModelId = MODELS.includes(selectedModel)
+  const validModelId = modelIds.includes(selectedModel)
     ? selectedModel
     : defaultModel;
 
   // If the selected model is invalid, update it to the default
   useEffect(() => {
     if (selectedModel !== validModelId) {
+      console.log(`Model picker: Selected model ${selectedModel} is invalid, updating to ${validModelId}`);
       setSelectedModel(validModelId as modelID);
     }
   }, [selectedModel, validModelId, setSelectedModel]);
+
+  // Keep local state in sync with provider registry
+  useEffect(() => {
+    const update = () => {
+      const newModelIds = getModelIDs();
+      console.log('Model picker: Event received, updating models:', newModelIds);
+      console.log('Model picker: Total models available:', newModelIds.length);
+      console.log('Model picker: Local models:', newModelIds.filter(id => !id.includes('qwen') && !id.includes('grok') && !id.includes('kimi') && !id.includes('llama')));
+      setModelIds(newModelIds);
+    };
+    update();
+    if (typeof window !== "undefined") {
+      window.addEventListener("local-models-updated", update);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("local-models-updated", update);
+      }
+    };
+  }, []);
+
+  // Refresh models when component mounts - USE WORKING GLOBAL FUNCTION
+  useEffect(() => {
+    console.log('=== MODEL PICKER MOUNT EFFECT STARTED ===');
+    console.log('Model picker: Component mounted, calling global refresh...');
+    
+    // Use the global function that we know works
+    const executeRefresh = async () => {
+      try {
+        console.log('Model picker: Calling global debugRefreshModels...');
+        
+        // Check if the global function exists
+        if (typeof (window as any).debugRefreshModels === 'function') {
+          await (window as any).debugRefreshModels();
+          console.log('✅ Model picker: Global refresh completed successfully');
+          
+          // Force update the model list
+          const updatedModels = getModelIDs();
+          console.log('Model picker: Updated models after refresh:', updatedModels);
+          console.log('Model picker: Is gpt-oss:20b in updated models?', updatedModels.includes('gpt-oss:20b'));
+          setModelIds(updatedModels);
+          
+          // Dispatch event to notify other components
+          window.dispatchEvent(new Event('local-models-updated'));
+        } else {
+          console.error('❌ Model picker: Global debugRefreshModels not available');
+        }
+      } catch (error) {
+        console.error('❌ Model picker: Global refresh failed:', error);
+        
+        // Retry after 2 seconds
+        setTimeout(() => {
+          console.log('Model picker: Retrying global refresh...');
+          executeRefresh();
+        }, 2000);
+      }
+    };
+    
+    // Execute immediately
+    executeRefresh();
+    
+    // Also set up a backup timer
+    const backupTimer = setTimeout(() => {
+      console.log('Model picker: Backup timer triggered, forcing global refresh...');
+      executeRefresh();
+    }, 3000);
+    
+    return () => {
+      console.log('Model picker: Cleanup function called, clearing backup timer');
+      clearTimeout(backupTimer);
+    };
+  }, []);
 
   // Function to get the appropriate icon for each provider
   const getProviderIcon = (provider: string) => {
@@ -129,9 +216,16 @@ export const ModelPicker = ({
 
   // Handle model change
   const handleModelChange = (modelId: string) => {
-    if (MODELS.includes(modelId)) {
+    console.log(`Model picker: Model change requested to ${modelId}`);
+    console.log(`Model picker: Available models:`, modelIds);
+    console.log(`Model picker: Is requested model available?`, modelIds.includes(modelId));
+    
+    if (modelIds.includes(modelId)) {
       const typedModelId = modelId as modelID;
+      console.log(`Model picker: Setting selected model to ${typedModelId}`);
       setSelectedModel(typedModelId);
+    } else {
+      console.warn(`Model picker: Requested model ${modelId} is not available`);
     }
   };
 
@@ -163,7 +257,7 @@ export const ModelPicker = ({
             {/* Model selector column */}
             <div className="bg-muted/20 p-0 pr-1">
               <SelectGroup className="space-y-1">
-                {MODELS.map((id) => {
+                {modelIds.map((id) => {
                   const modelId = id as modelID;
                   return (
                     <SelectItem
@@ -274,3 +368,5 @@ export const ModelPicker = ({
     </div>
   );
 };
+
+// Made with Bob

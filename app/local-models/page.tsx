@@ -20,6 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { refreshModels } from "@/ai/providers";
 
 // Local model configuration
 interface LocalModel {
@@ -50,15 +51,12 @@ interface OllamaModelsResponse {
   models: OllamaModel[];
 }
 
-// Local storage key
-const LOCAL_MODELS_STORAGE_KEY = "local-openai-models";
-
 export default function LocalModelsPage() {
-  // Initialize state from localStorage if available
+  // Initialize state
   const [localModels, setLocalModels] = useState<LocalModel[]>([]);
   const [view, setView] = useState<"list" | "add">("list");
   const [editingModelId, setEditingModelId] = useState<string | null>(null);
-  const [newModel, setNewModel] = useState<Omit<LocalModel, "id" | "isActive">>({
+  const [newModel, setNewModel] = useState<Omit<LocalModel, "id" | "isActive" | "userId" | "endpointType" | "healthStatus" | "createdAt" | "updatedAt" | "lastHealthCheck" | "lastModelDiscovery" | "availableModels">>({
     name: "",
     baseUrl: "",
     apiKey: "",
@@ -72,18 +70,34 @@ export default function LocalModelsPage() {
   useEffect(() => {
     setIsClient(true);
     
-    // Load models from localStorage
-    const storedModels = localStorage.getItem(LOCAL_MODELS_STORAGE_KEY);
-    if (storedModels) {
-      try {
-        const parsedModels = JSON.parse(storedModels);
-        setLocalModels(parsedModels);
-        setActiveCount(parsedModels.filter((model: LocalModel) => model.isActive).length);
-      } catch (error) {
-        console.error("Error parsing stored local models:", error);
-      }
-    }
+    // Load models from database API
+    loadLocalModels();
   }, []);
+
+  // Load local models from database
+  const loadLocalModels = async () => {
+    try {
+      // TODO: Get actual userId from auth context
+      const userId = 'default-user'; // Placeholder
+      console.log('Loading local models for userId:', userId);
+      
+      const response = await fetch(`/api/local-models?userId=${userId}`);
+      console.log('Load models response status:', response.status);
+      
+      if (response.ok) {
+        const models = await response.json();
+        console.log('Loaded models from API:', models);
+        setLocalModels(models);
+        setActiveCount(models.filter((model: LocalModel) => model.isActive).length);
+      } else {
+        console.error('Failed to load models, status:', response.status);
+        const error = await response.json();
+        console.error('Load models error:', error);
+      }
+    } catch (error) {
+      console.error("Error loading local models:", error);
+    }
+  };
 
   // Function to fetch available models from an Ollama endpoint
   const fetchOllamaModels = useCallback(async (baseUrl: string, apiKey?: string): Promise<string[]> => {
@@ -146,34 +160,45 @@ export default function LocalModelsPage() {
     }
   }, []);
 
-  // Save local models to localStorage whenever they change
+  // Update active count whenever models change
   useEffect(() => {
-    if (isClient && localModels.length > 0) {
-      localStorage.setItem(LOCAL_MODELS_STORAGE_KEY, JSON.stringify(localModels));
+    if (isClient) {
       setActiveCount(localModels.filter(model => model.isActive).length);
     }
   }, [localModels, isClient]);
 
   // Function to refresh available models for a specific model
   const refreshAvailableModels = async (modelId: string) => {
-    const model = localModels.find(m => m.id === modelId);
-    if (!model) return;
-
     setIsLoading(true);
     setFetchError(null);
     
     try {
-      const models = await fetchOllamaModels(model.baseUrl, model.apiKey);
+      // TODO: Get actual userId from auth context
+      const userId = 'default-user'; // Placeholder
       
-      // Update the model with available models
-      setLocalModels(localModels.map(m =>
-        m.id === modelId ? { ...m, availableModels: models } : m
-      ));
+      const response = await fetch(`/api/local-models/${modelId}/models`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
       
-      if (models.length === 0) {
-        toast.warning("No models found at this endpoint");
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Refresh models from database
+        await loadLocalModels();
+        
+        // Refresh providers to update model picker
+        await refreshModels();
+        
+        if (result.availableModels.length === 0) {
+          toast.warning("No models found at this endpoint");
+        } else {
+          toast.success(`Found ${result.availableModels.length} models`);
+        }
       } else {
-        toast.success(`Found ${models.length} models`);
+        const error = await response.json();
+        toast.error(error.error || "Failed to refresh models");
       }
     } catch (error) {
       console.error("Error fetching models:", error);
@@ -187,51 +212,109 @@ export default function LocalModelsPage() {
   const addModel = async () => {
     if (!newModel.name || !newModel.baseUrl) return;
     
-    const id = `local-model-${Date.now()}`;
-    const model: LocalModel = {
-      id,
-      ...newModel,
-      isActive: false,
-    };
-    
-    // Add the model first
-    const updatedModels = [...localModels, model];
-    setLocalModels(updatedModels);
-    
-    // Then try to fetch available models
     setIsLoading(true);
     try {
-      const availableModels = await fetchOllamaModels(model.baseUrl, model.apiKey);
+      // TODO: Get actual userId from auth context
+      const userId = 'default-user'; // Placeholder
       
-      // Update the model with available models
-      setLocalModels(updatedModels.map(m =>
-        m.id === id ? { ...m, availableModels } : m
-      ));
+      const requestBody = { ...newModel, userId };
+      console.log('Sending request to API:', requestBody);
       
-      if (availableModels.length === 0) {
-        toast.warning("Added endpoint, but no models were found");
+      // Create the model via API
+      const response = await fetch('/api/local-models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+      
+      console.log('API response status:', response.status);
+      
+      if (response.ok) {
+        const createdModel = await response.json();
+        console.log('API returned created model:', createdModel);
+        
+        // Refresh models from database
+        await loadLocalModels();
+        
+        // Refresh providers to update model picker
+        await refreshModels();
+        
+        toast.success("Local model endpoint added successfully");
+        setNewModel({ name: "", baseUrl: "", apiKey: "" });
+        setView("list");
       } else {
-        toast.success(`Added endpoint with ${availableModels.length} models`);
+        const error = await response.json();
+        console.error('API error:', error);
+        toast.error(error.error || "Failed to add local model");
       }
     } catch (error) {
-      console.error("Error fetching models:", error);
-      toast.warning("Added endpoint, but couldn't fetch models");
+      console.error("Error adding model:", error);
+      toast.error("Failed to add local model");
     } finally {
       setIsLoading(false);
-      setNewModel({ name: "", baseUrl: "", apiKey: "" });
-      setView("list");
     }
   };
 
-  const removeModel = (id: string) => {
-    setLocalModels(localModels.filter(model => model.id !== id));
-    toast.success("Local model removed");
+  const removeModel = async (id: string) => {
+    try {
+      // TODO: Get actual userId from auth context
+      const userId = 'default-user'; // Placeholder
+      
+      const response = await fetch(`/api/local-models/${id}?userId=${userId}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        // Refresh models from database
+        await loadLocalModels();
+        
+        // Refresh providers to update model picker
+        await refreshModels();
+        
+        toast.success("Local model removed");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to remove local model");
+      }
+    } catch (error) {
+      console.error("Error removing model:", error);
+      toast.error("Failed to remove local model");
+    }
   };
 
-  const toggleModelActive = (id: string) => {
-    setLocalModels(localModels.map(model => 
-      model.id === id ? { ...model, isActive: !model.isActive } : model
-    ));
+  const toggleModelActive = async (id: string) => {
+    try {
+      const model = localModels.find(m => m.id === id);
+      if (!model) return;
+      
+      // TODO: Get actual userId from auth context
+      const userId = 'default-user'; // Placeholder
+      
+      const response = await fetch(`/api/local-models/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          isActive: !model.isActive,
+          userId 
+        }),
+      });
+      
+      if (response.ok) {
+        // Refresh models from database
+        await loadLocalModels();
+        
+        // Refresh providers to update model picker
+        await refreshModels();
+        
+        toast.success(`Model ${!model.isActive ? 'activated' : 'deactivated'}`);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to update model");
+      }
+    } catch (error) {
+      console.error("Error updating model:", error);
+      toast.error("Failed to update model");
+    }
   };
 
   const startEditing = (model: LocalModel) => {
@@ -247,50 +330,43 @@ export default function LocalModelsPage() {
   const updateModel = async () => {
     if (!editingModelId || !newModel.name || !newModel.baseUrl) return;
     
-    // First update the model
-    const updated = localModels.map(model =>
-      model.id === editingModelId ? {
-        ...model,
-        name: newModel.name,
-        baseUrl: newModel.baseUrl,
-        apiKey: newModel.apiKey,
-      } : model
-    );
-    setLocalModels(updated);
-    
-    // Then try to fetch available models if the URL or API key changed
-    const originalModel = localModels.find(m => m.id === editingModelId);
-    if (originalModel &&
-        (originalModel.baseUrl !== newModel.baseUrl ||
-         originalModel.apiKey !== newModel.apiKey)) {
+    setIsLoading(true);
+    try {
+      // TODO: Get actual userId from auth context
+      const userId = 'default-user'; // Placeholder
       
-      setIsLoading(true);
-      try {
-        const availableModels = await fetchOllamaModels(newModel.baseUrl, newModel.apiKey);
+      const response = await fetch(`/api/local-models/${editingModelId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          name: newModel.name,
+          baseUrl: newModel.baseUrl,
+          apiKey: newModel.apiKey,
+          userId 
+        }),
+      });
+      
+      if (response.ok) {
+        // Refresh models from database
+        await loadLocalModels();
         
-        // Update the model with available models
-        setLocalModels(updated.map(m =>
-          m.id === editingModelId ? { ...m, availableModels } : m
-        ));
+        // Refresh providers to update model picker
+        await refreshModels();
         
-        if (availableModels.length === 0) {
-          toast.warning("Updated endpoint, but no models were found");
-        } else {
-          toast.success(`Updated endpoint with ${availableModels.length} models`);
-        }
-      } catch (error) {
-        console.error("Error fetching models:", error);
-        toast.warning("Updated endpoint, but couldn't fetch models");
-      } finally {
-        setIsLoading(false);
+        toast.success("Local model updated successfully");
+        setEditingModelId(null);
+        setNewModel({ name: "", baseUrl: "", apiKey: "" });
+        setView("list");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to update local model");
       }
-    } else {
-      toast.success("Local model updated successfully");
+    } catch (error) {
+      console.error("Error updating model:", error);
+      toast.error("Failed to update local model");
+    } finally {
+      setIsLoading(false);
     }
-    
-    setEditingModelId(null);
-    setNewModel({ name: "", baseUrl: "", apiKey: "" });
-    setView("list");
   };
 
   const handleFormCancel = () => {

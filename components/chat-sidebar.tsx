@@ -35,7 +35,6 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import Image from "next/image";
 import { ApiKeyManager } from "./api-key-manager";
-import { LocalModelsManager } from "./local-models-manager";
 import { ThemeToggle } from "./theme-toggle";
 import { getUserId, updateUserId } from "@/lib/user-id";
 import { useChats } from "@/lib/hooks/use-chats";
@@ -70,7 +69,6 @@ export function ChatSidebar() {
   const pathname = usePathname();
   const [userId, setUserId] = useState<string>("");
   const [apiKeySettingsOpen, setApiKeySettingsOpen] = useState(false);
-  const [localModelsSettingsOpen, setLocalModelsSettingsOpen] = useState(false);
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
   const [editUserIdOpen, setEditUserIdOpen] = useState(false);
@@ -562,11 +560,6 @@ export function ChatSidebar() {
         <ApiKeyManager
           open={apiKeySettingsOpen}
           onOpenChange={setApiKeySettingsOpen}
-        />
-        
-        <LocalModelsManager
-          open={localModelsSettingsOpen}
-          onOpenChange={setLocalModelsSettingsOpen}
         />
       </SidebarFooter>
 

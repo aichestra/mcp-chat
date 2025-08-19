@@ -1,4 +1,4 @@
-import { model, type modelID } from "@/ai/providers";
+import { model, type modelID, refreshModelsServerSide } from "@/ai/providers";
 import { smoothStream, streamText, type UIMessage } from "ai";
 import { appendResponseMessages } from 'ai';
 import { saveChat, saveMessages, convertToDBMessages } from '@/lib/chat-store';
@@ -42,6 +42,13 @@ export async function POST(req: Request) {
       JSON.stringify({ error: "User ID is required" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
+  }
+
+  // Ensure server-side local models are registered before use
+  try {
+    await refreshModelsServerSide();
+  } catch (err) {
+    console.error('Failed to refresh server-side models:', err);
   }
 
   const id = chatId || nanoid();
